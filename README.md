@@ -15,14 +15,12 @@ python3 -m http.server 8000
 
 ## Files
 
-- `index.html` — Leaflet map, legend, popups, loading state
-- `postcodes.geojson` — 302 postcode polygons (state-coloured)
-- `postcodes-fallback.json` — 93 centroid markers for PO-only postcodes with no
-  ABS boundary data
-- Total coverage: 395 postcodes across NSW, NT (all), QLD, VIC, SA, TAS, WA
+- `index.html` — Leaflet map with toggleable zone layers, legend, popups
+- `postcodes-data.js` — source-of-truth postcode definitions for all 5 zones
+- `postcodes.geojson` — 2,291 postcode polygons, each tagged with its zone memberships
 
 ## Data sources
 
 - Polygons: ABS POA boundaries (via `ferocia/australia-geojsons`, Visvalingam-simplified)
-- Centroids: `matthewproctor/australianpostcodes`
+- Postcode lists: Australian Dept of Home Affairs WHV 462 specified work page
 - Tiles: OpenStreetMap

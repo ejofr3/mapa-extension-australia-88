@@ -320,14 +320,11 @@ function updateCount() {
   document.getElementById('stat-n').textContent = n;
 }
 
-Promise.all([
-  fetch('postcodes.geojson').then(r => { if (!r.ok) throw new Error('postcodes.geojson ' + r.status); return r.json(); }),
-  fetch('postcodes-fallback.json').then(r => { if (!r.ok) throw new Error('postcodes-fallback.json ' + r.status); return r.json(); })
-])
-.then(([geojson, fallbacks]) => {
+fetch('postcodes.geojson')
+.then(r => { if (!r.ok) throw new Error('postcodes.geojson ' + r.status); return r.json(); })
+.then(geojson => {
   window._allFeatures = geojson.features;
 
-  /* ── Render polygons ── */
   geojson.features.forEach(feature => {
     const { postcode, state, zones } = feature.properties;
     const popup = buildPopup(postcode, state, zones);
@@ -350,27 +347,7 @@ Promise.all([
     });
   });
 
-  /* ── Render fallback markers (no polygon data) ── */
-  fallbacks.forEach(f => {
-    const { postcode, state, zones, lat, lng } = f;
-    if (!zones || !zones.length) return;
-    const popup = buildPopup(postcode, state, zones);
-    const primaryZone = zones[0];
-    const ui = ZONE_UI[primaryZone];
-
-    const marker = L.circleMarker([lat, lng], {
-      radius: 5,
-      color: ui.color,
-      weight: 1.5,
-      fillColor: ui.color,
-      fillOpacity: 0.5
-    }).bindPopup(popup);
-
-    zones.forEach(zk => zoneLayers[zk].addLayer(marker));
-  });
-
-  document.getElementById('stat-n').textContent =
-    geojson.features.length + fallbacks.length;
+  document.getElementById('stat-n').textContent = geojson.features.length;
   document.getElementById('loading').style.display = 'none';
 })
 .catch(err => {
