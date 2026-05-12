@@ -309,54 +309,76 @@ function onOut(e) {
 }
 
 /* ── Load & render ────────────────────────────────────────────────────────── */
-let totalDisplayed = 0;
+window._allFeatures = [];
+window._fallbackFeatures = [];
 
 function updateCount() {
   const active = Object.entries(checkboxes).filter(([,cb]) => cb.checked).map(([k]) => k);
-  let n = 0;
-  for (const f of window._allFeatures || []) {
-    if (f.properties.zones.some(z => active.includes(z))) n++;
-  }
-  document.getElementById('stat-n').textContent = n;
+  const polyCount = (window._allFeatures || []).filter(f => f.properties.zones.some(z => active.includes(z))).length;
+  const fbCount   = (window._fallbackFeatures || []).filter(f => f.zones.some(z => active.includes(z))).length;
+  document.getElementById('stat-n').textContent = polyCount + fbCount;
 }
 
-fetch('postcodes.geojson')
-.then(r => { if (!r.ok) throw new Error('postcodes.geojson ' + r.status); return r.json(); })
-.then(geojson => {
-  window._allFeatures = geojson.features;
+function circleOver(e) { e.target.setStyle({ weight: 2.5, fillOpacity: 0.65 }); }
+function circleOut(e)  { e.target.setStyle({ weight: 1.2, fillOpacity: 0.38 }); }
 
-  geojson.features.forEach(feature => {
-    const { postcode, state, zones } = feature.properties;
-    const popup = buildPopup(postcode, state, zones);
-
-    zones.forEach(zk => {
-      const ui = ZONE_UI[zk];
-      const poly = L.geoJSON(feature, {
-        style: {
-          color: ui.color,
-          weight: 1.2,
-          opacity: 0.9,
-          fillColor: ui.color,
-          fillOpacity: 0.38
-        }
-      })
-        .bindPopup(popup)
-        .on('mouseover', onOver)
-        .on('mouseout', onOut);
-      zoneLayers[zk].addLayer(poly);
+const polyPromise = fetch('postcodes.geojson')
+  .then(r => { if (!r.ok) throw new Error('postcodes.geojson ' + r.status); return r.json(); })
+  .then(geojson => {
+    window._allFeatures = geojson.features;
+    geojson.features.forEach(feature => {
+      const { postcode, state, zones } = feature.properties;
+      const popup = buildPopup(postcode, state, zones);
+      zones.forEach(zk => {
+        const ui = ZONE_UI[zk];
+        L.geoJSON(feature, {
+          style: { color: ui.color, weight: 1.2, opacity: 0.9, fillColor: ui.color, fillOpacity: 0.38 }
+        })
+          .bindPopup(popup)
+          .on('mouseover', onOver)
+          .on('mouseout', onOut)
+          .addTo(zoneLayers[zk]);
+      });
     });
   });
 
-  document.getElementById('stat-n').textContent = geojson.features.length;
-  document.getElementById('loading').style.display = 'none';
-})
-.catch(err => {
-  const el = document.getElementById('load-err');
-  el.style.display = 'block';
-  el.textContent = `Error: ${err.message}. Open via a local web server (python3 -m http.server 8000), not file://.`;
-  document.querySelector('#loading .spinner').style.display = 'none';
-  console.error(err);
-});
+/* Fallback: postcodes with no ABS polygon — shown as geographic circles (~15 km radius) */
+const fbPromise = fetch('postcodes-fallback.json')
+  .then(r => r.ok ? r.json() : [])
+  .then(fallbacks => {
+    window._fallbackFeatures = fallbacks;
+    fallbacks.forEach(fb => {
+      const { postcode, state, zones, lat, lng } = fb;
+      if (!lat || !lng) return;
+      const popup = buildPopup(postcode, state, zones);
+      zones.forEach(zk => {
+        const ui = ZONE_UI[zk];
+        L.circle([lat, lng], {
+          radius: 15000,
+          color: ui.color, weight: 1.2, opacity: 0.9,
+          fillColor: ui.color, fillOpacity: 0.38
+        })
+          .bindPopup(popup)
+          .on('mouseover', circleOver)
+          .on('mouseout', circleOut)
+          .addTo(zoneLayers[zk]);
+      });
+    });
+  })
+  .catch(() => { /* fallback file is optional */ });
+
+Promise.all([polyPromise, fbPromise])
+  .then(() => {
+    updateCount();
+    document.getElementById('loading').style.display = 'none';
+  })
+  .catch(err => {
+    const el = document.getElementById('load-err');
+    el.style.display = 'block';
+    el.textContent = `Error: ${err.message}. Open via a local web server (python3 -m http.server 8000), not file://.`;
+    document.querySelector('#loading .spinner').style.display = 'none';
+    console.error(err);
+  });
 </script>
 </body>
 </html>
