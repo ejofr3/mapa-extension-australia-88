@@ -3,74 +3,115 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Remote &amp; Very Remote Australia – WHV 462 Eligible Postcodes</title>
+  <title>Australia WHV 462 – Eligible Work Areas Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; }
-    #map { width: 100vw; height: 100vh; background: #cfe2f3; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #0f172a; }
+    #map { width: 100vw; height: 100vh; }
 
+    /* ── loading overlay ─────────────────────────────────────── */
     #loading {
-      position: fixed; inset: 0;
-      background: rgba(15, 23, 42, 0.88);
+      position: fixed; inset: 0; z-index: 4000;
+      background: rgba(15, 23, 42, 0.93);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      z-index: 3000; color: #fff;
+      align-items: center; justify-content: center; color: #fff;
     }
     .spinner {
-      width: 44px; height: 44px;
-      border: 4px solid rgba(255,255,255,0.25);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-      margin-bottom: 14px;
+      width: 48px; height: 48px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.85s linear infinite;
+      margin-bottom: 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #loading p { font-size: 15px; }
-    #loading small { margin-top: 6px; font-size: 12px; opacity: 0.65; }
+    #loading h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    #loading p  { font-size: 13px; opacity: 0.6; }
+    #load-err   { display: none; color: #fca5a5; margin-top: 12px; text-align: center; max-width: 380px; font-size: 13px; }
 
+    /* ── title bar ───────────────────────────────────────────── */
     #title {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-      background: rgba(255,255,255,0.96);
-      padding: 10px 18px; border-radius: 10px;
+      background: rgba(255,255,255,0.97);
+      padding: 10px 20px; border-radius: 12px;
       z-index: 1000; text-align: center;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.22);
-      max-width: 92vw;
-      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      max-width: 92vw; pointer-events: none;
     }
-    #title h2 { font-size: 15px; color: #0f172a; }
-    #title p  { font-size: 11px; color: #475569; margin-top: 3px; }
+    #title h1 { font-size: 14px; color: #0f172a; font-weight: 700; }
+    #title p  { font-size: 11px; color: #dc2626; font-weight: 600; margin-top: 3px; }
 
+    /* ── legend panel ────────────────────────────────────────── */
     #legend {
-      position: fixed; bottom: 18px; right: 14px;
-      background: rgba(255,255,255,0.96);
-      padding: 12px 16px; border-radius: 10px;
-      z-index: 1000; min-width: 200px;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.22);
+      position: fixed; top: 80px; right: 14px;
+      background: rgba(255,255,255,0.97);
+      border-radius: 12px; z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      width: 280px; max-height: calc(100vh - 110px);
+      display: flex; flex-direction: column;
+      overflow: hidden;
     }
-    #legend h4 { font-size: 12px; color: #0f172a; text-transform: uppercase; letter-spacing: .5px;
-                 margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
-    .leg { display: flex; align-items: center; margin-bottom: 6px; font-size: 12px; color: #334155; }
-    .swatch { width: 16px; height: 12px; border-radius: 3px; margin-right: 9px; flex-shrink: 0;
-              border: 1.5px solid; }
-    .leg-note { font-size: 10px; color: #64748b; margin-top: 8px; padding-top: 6px;
-                border-top: 1px dashed #e2e8f0; }
-    .leg-dot { width: 11px; height: 11px; border-radius: 50%; margin-right: 9px; flex-shrink: 0;
-               background: #64748b; border: 1.5px solid #475569; }
+    #legend-header {
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    #legend-header span { font-size: 11px; font-weight: 700; text-transform: uppercase;
+                          letter-spacing: .6px; color: #64748b; }
+    #legend-toggle-all {
+      font-size: 10px; padding: 2px 7px; border-radius: 5px;
+      border: 1px solid #cbd5e1; background: #f8fafc;
+      cursor: pointer; color: #475569;
+    }
+    #legend-toggle-all:hover { background: #e2e8f0; }
 
+    #legend-scroll { overflow-y: auto; padding: 8px 0 12px; flex: 1; }
+
+    .zone-card {
+      padding: 8px 14px;
+      border-left: 4px solid transparent;
+      transition: background .15s;
+    }
+    .zone-card:hover { background: #f8fafc; }
+
+    .zone-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 5px;
+    }
+    .zone-toggle {
+      width: 16px; height: 16px; cursor: pointer; flex-shrink: 0;
+      accent-color: inherit;
+    }
+    .zone-emoji { font-size: 16px; flex-shrink: 0; }
+    .zone-name  { font-size: 12px; font-weight: 700; color: #1e293b; line-height: 1.3; }
+
+    .zone-desc  { font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 5px; padding-left: 24px; }
+    .zone-works { padding-left: 24px; }
+    .work-item  { font-size: 11px; color: #334155; margin-bottom: 2px; }
+
+    .zone-divider { height: 1px; background: #f1f5f9; margin: 6px 14px; }
+
+    /* ── stat badge ──────────────────────────────────────────── */
     #stats {
-      position: fixed; bottom: 18px; left: 14px;
-      background: rgba(255,255,255,0.96);
-      padding: 10px 14px; border-radius: 10px;
-      z-index: 1000; font-size: 12px; color: #334155;
-      box-shadow: 0 3px 14px rgba(0,0,0,0.22);
+      position: fixed; bottom: 16px; left: 14px;
+      background: rgba(255,255,255,0.97);
+      padding: 8px 14px; border-radius: 10px;
+      z-index: 1000; font-size: 12px; color: #475569;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
     }
-    #stats strong { color: #0f172a; font-size: 22px; display: block; }
-    #err { display:none; color:#fca5a5; font-size:14px; text-align:center; max-width: 360px; }
+    #stats strong { color: #0f172a; font-size: 20px; display: block; }
 
-    .pc-popup b { font-size: 14px; }
-    .pc-popup .chip { display:inline-block; padding:1px 7px; border-radius:10px;
-                      color:#fff; font-size:11px; font-weight:600; margin-top:3px; }
+    /* ── popup ───────────────────────────────────────────────── */
+    .pc-popup { min-width: 200px; }
+    .pc-popup .pc-num { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .pc-popup .pc-state { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+    .pc-popup .zones-title { font-size: 11px; font-weight: 600; text-transform: uppercase;
+                             letter-spacing: .5px; color: #94a3b8; margin-bottom: 5px; }
+    .zone-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 12px; color: #fff;
+      font-size: 11px; font-weight: 600; margin: 2px 2px 2px 0;
+    }
   </style>
 </head>
 <body>
@@ -79,147 +120,266 @@
 
 <div id="loading">
   <div class="spinner"></div>
-  <p>Loading postcode boundaries…</p>
-  <small>Rendering ~400 eligible postcode areas</small>
-  <div id="err"></div>
+  <h2>Loading eligible work areas…</h2>
+  <p>Processing 2,500+ Australian postcode boundaries</p>
+  <div id="load-err"></div>
 </div>
 
 <div id="title">
-  <h2>Remote &amp; Very Remote Australia</h2>
-  <p>Eligible postcodes for second/third Work &amp; Holiday Visa (subclass 462) — Tourism &amp; Hospitality from 22 Jun 2021</p>
+  <h1>🗺️ Australia Work &amp; Holiday Visa (Subclass 462) — Eligible Work Areas</h1>
+  <p>⚠️ This map is for subclass 462 only and may NOT be valid for subclass 417</p>
 </div>
 
 <div id="legend">
-  <h4>State / Territory</h4>
-  <div id="legend-items"></div>
-  <div class="leg-note">
-    <div class="leg" style="margin-bottom: 4px;">
-      <div class="leg-dot"></div><span>= no boundary data (PO-only)</span>
-    </div>
-    Click any area for postcode details
+  <div id="legend-header">
+    <span>Work Zones</span>
+    <button id="legend-toggle-all">Toggle all</button>
   </div>
+  <div id="legend-scroll"></div>
 </div>
 
 <div id="stats">
   <strong id="stat-n">–</strong>
-  postcodes painted
+  postcodes displayed
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="postcodes-data.js"></script>
 <script>
-/* ── palette ─────────────────────────────────────────── */
-const COLORS = {
-  NSW: '#3b82f6',
-  NT:  '#f97316',
-  QLD: '#22c55e',
-  VIC: '#ef4444',
-  SA:  '#14b8a6',
-  TAS: '#eab308',
-  WA:  '#a855f7'
-};
-const LABELS = {
-  NSW: 'New South Wales',
-  NT:  'Northern Territory (all)',
-  QLD: 'Queensland',
-  VIC: 'Victoria',
-  SA:  'South Australia',
-  TAS: 'Tasmania',
-  WA:  'Western Australia'
+/* ── Zone UI definitions ──────────────────────────────────────────────────── */
+const ZONE_UI = {
+  remote: {
+    name: 'Remote & Very Remote Australia',
+    emoji: '🏜️',
+    color: '#f97316',
+    desc: 'Tourism & hospitality work from 22 Jun 2021 (visa applications from 5 Mar 2022).',
+    works: [
+      { emoji: '🏨', label: 'Accommodation (hotels, motels, hostels, caravan parks)' },
+      { emoji: '🍽️', label: 'Food & beverage (cafes, restaurants, bars, catering)' },
+      { emoji: '🧭', label: 'Tourist services (guides, operators, transport, museums)' },
+      { emoji: '🎉', label: 'Events & entertainment venues' },
+    ]
+  },
+  northern: {
+    name: 'Northern Australia',
+    emoji: '🌴',
+    color: '#22c55e',
+    desc: 'Work in Northern Australia across several industries.',
+    works: [
+      { emoji: '🍽️', label: 'Tourism & hospitality' },
+      { emoji: '🌾', label: 'Plant & animal cultivation (harvesting, shearing, livestock)' },
+      { emoji: '🎣', label: 'Fishing & pearling' },
+      { emoji: '🌲', label: 'Tree farming & felling' },
+      { emoji: '🏗️', label: 'Construction (building, civil engineering, site prep)' },
+    ]
+  },
+  regional: {
+    name: 'Regional Australia',
+    emoji: '🌾',
+    color: '#eab308',
+    desc: 'Plant/animal cultivation and construction in regional areas.',
+    works: [
+      { emoji: '🍎', label: 'Plant cultivation (fruit picking, pruning, propagation)' },
+      { emoji: '🐄', label: 'Animal cultivation (shearing, butchery, dairy, livestock)' },
+      { emoji: '🏗️', label: 'Construction (residential, civil engineering, landscaping)' },
+    ]
+  },
+  bushfire: {
+    name: 'Bushfire Declared Areas',
+    emoji: '🔥',
+    color: '#ef4444',
+    desc: 'Bushfire recovery work after 31 Jul 2019 in declared areas.',
+    works: [
+      { emoji: '🔨', label: 'Construction, farming or recovery of land, property, wildlife' },
+      { emoji: '🧹', label: 'Demolition, land clearing, trench digging, earth moving' },
+      { emoji: '🛖', label: 'Residential & non-residential rebuilding (roads, fences, dams)' },
+      { emoji: '🤝', label: 'Support services to people in affected areas (paid or volunteer)' },
+    ]
+  },
+  disaster: {
+    name: 'Natural Disaster Declared Areas',
+    emoji: '🌊',
+    color: '#3b82f6',
+    desc: 'Flood/cyclone/severe weather recovery after 31 Dec 2021. Applies to visa applications lodged on or after 5 Apr 2025.',
+    works: [
+      { emoji: '🧹', label: 'General clean-up, demolition, earth moving' },
+      { emoji: '🛖', label: 'Residential & non-residential construction/repair' },
+      { emoji: '🤝', label: 'Admin, coordination & transport support for recovery' },
+      { emoji: '🐾', label: 'Caring for and transporting affected animals' },
+      { emoji: '🏥', label: 'Charitable & community recovery services (paid or volunteer)' },
+    ]
+  }
 };
 
-/* ── map init ─────────────────────────────────────────── */
+/* ── Map init ─────────────────────────────────────────────────────────────── */
 const map = L.map('map', { preferCanvas: true }).setView([-25.5, 134], 4);
-
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · postcode boundaries: ABS POA via ferocia/australia-geojsons',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · postcode boundaries ABS POA via ferocia/australia-geojsons · data: Dept of Home Affairs',
   maxZoom: 18
 }).addTo(map);
 
-/* ── legend ───────────────────────────────────────────── */
-const legendBox = document.getElementById('legend-items');
-Object.entries(COLORS).forEach(([state, color]) => {
-  const row = document.createElement('div');
-  row.className = 'leg';
-  row.innerHTML = `<div class="swatch" style="background:${color}66;border-color:${color}"></div>
-                   <span>${LABELS[state]}</span>`;
-  legendBox.appendChild(row);
+/* ── Build legend ─────────────────────────────────────────────────────────── */
+const legendScroll = document.getElementById('legend-scroll');
+const checkboxes = {};
+
+Object.entries(ZONE_UI).forEach(([key, ui], idx) => {
+  if (idx > 0) {
+    const div = document.createElement('div');
+    div.className = 'zone-divider';
+    legendScroll.appendChild(div);
+  }
+
+  const card = document.createElement('div');
+  card.className = 'zone-card';
+  card.style.borderLeftColor = ui.color;
+
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.checked = true;
+  cb.className = 'zone-toggle';
+  cb.style.accentColor = ui.color;
+  cb.id = 'cb-' + key;
+  checkboxes[key] = cb;
+
+  const worksHtml = ui.works.map(w =>
+    `<div class="work-item">${w.emoji} ${w.label}</div>`
+  ).join('');
+
+  card.innerHTML = `
+    <div class="zone-header">
+      <label for="cb-${key}" style="display:flex;align-items:center;gap:8px;cursor:pointer;width:100%">
+        <span class="zone-emoji">${ui.emoji}</span>
+        <span class="zone-name">${ui.name}</span>
+      </label>
+    </div>
+    <div class="zone-desc">${ui.desc}</div>
+    <div class="zone-works">${worksHtml}</div>
+  `;
+  card.querySelector('.zone-header').prepend(cb);
+  legendScroll.appendChild(card);
 });
 
-/* ── style functions ──────────────────────────────────── */
-function polyStyle(feature) {
-  const c = COLORS[feature.properties.state] || '#94a3b8';
-  return {
-    color: c,
-    weight: 1.4,
-    opacity: 0.95,
-    fillColor: c,
-    fillOpacity: 0.42
-  };
-}
-function polyHover(layer) {
-  layer.setStyle({ weight: 2.8, fillOpacity: 0.62 });
-  if (layer.bringToFront) layer.bringToFront();
-}
-function polyReset(layer) {
-  layer.setStyle({ weight: 1.4, fillOpacity: 0.42 });
+/* ── Zone Leaflet layers ──────────────────────────────────────────────────── */
+const zoneLayers = {};
+Object.keys(ZONE_UI).forEach(key => {
+  zoneLayers[key] = L.layerGroup().addTo(map);
+});
+
+function toggleZone(key, visible) {
+  if (visible) map.addLayer(zoneLayers[key]);
+  else map.removeLayer(zoneLayers[key]);
 }
 
-function popupHTML(pc, state, locality) {
-  const c = COLORS[state] || '#64748b';
+Object.entries(checkboxes).forEach(([key, cb]) => {
+  cb.addEventListener('change', () => {
+    toggleZone(key, cb.checked);
+    updateCount();
+  });
+});
+
+document.getElementById('legend-toggle-all').addEventListener('click', () => {
+  const anyOn = Object.values(checkboxes).some(cb => cb.checked);
+  Object.entries(checkboxes).forEach(([key, cb]) => {
+    cb.checked = !anyOn;
+    toggleZone(key, !anyOn);
+  });
+  updateCount();
+});
+
+/* ── Popup builder ────────────────────────────────────────────────────────── */
+function buildPopup(postcode, state, zones) {
+  const badges = zones.map(zk => {
+    const ui = ZONE_UI[zk];
+    return `<span class="zone-badge" style="background:${ui.color}">${ui.emoji} ${ui.name}</span>`;
+  }).join('');
   return `<div class="pc-popup">
-    <b>Postcode ${pc}</b><br>
-    ${locality ? `${locality}<br>` : ''}
-    <span class="chip" style="background:${c}">${state}</span>
+    <div class="pc-num">📮 ${postcode}</div>
+    <div class="pc-state">${state || ''}</div>
+    <div class="zones-title">Eligible Zones</div>
+    ${badges}
   </div>`;
 }
 
-/* ── load & render ────────────────────────────────────── */
+/* ── Poly hover handlers ─────────────────────────────────────────────────── */
+function onOver(e) {
+  e.target.setStyle({ weight: 2.5, fillOpacity: 0.65 });
+  e.target.bringToFront();
+}
+function onOut(e) {
+  e.target.setStyle({ weight: 1.2, fillOpacity: 0.38 });
+}
+
+/* ── Load & render ────────────────────────────────────────────────────────── */
+let totalDisplayed = 0;
+
+function updateCount() {
+  const active = Object.entries(checkboxes).filter(([,cb]) => cb.checked).map(([k]) => k);
+  let n = 0;
+  for (const f of window._allFeatures || []) {
+    if (f.properties.zones.some(z => active.includes(z))) n++;
+  }
+  document.getElementById('stat-n').textContent = n;
+}
+
 Promise.all([
-  fetch('postcodes.geojson').then(r => { if (!r.ok) throw new Error('postcodes.geojson HTTP ' + r.status); return r.json(); }),
-  fetch('postcodes-fallback.json').then(r => { if (!r.ok) throw new Error('postcodes-fallback.json HTTP ' + r.status); return r.json(); })
+  fetch('postcodes.geojson').then(r => { if (!r.ok) throw new Error('postcodes.geojson ' + r.status); return r.json(); }),
+  fetch('postcodes-fallback.json').then(r => { if (!r.ok) throw new Error('postcodes-fallback.json ' + r.status); return r.json(); })
 ])
-  .then(([poly, fallbacks]) => {
-    // Polygons
-    const layer = L.geoJSON(poly, {
-      style: polyStyle,
-      onEachFeature: (feature, lyr) => {
-        const { postcode, state } = feature.properties;
-        lyr.bindPopup(popupHTML(postcode, state, ''));
-        lyr.on({
-          mouseover: e => polyHover(e.target),
-          mouseout:  e => polyReset(e.target)
-        });
-      }
-    }).addTo(map);
+.then(([geojson, fallbacks]) => {
+  window._allFeatures = geojson.features;
 
-    // Fallback centroid markers for PO-only postcodes
-    fallbacks.forEach(f => {
-      const c = COLORS[f.state] || '#64748b';
-      L.circleMarker([f.lat, f.lng], {
-        radius: 6,
-        color: c,
-        weight: 2,
-        fillColor: c,
-        fillOpacity: 0.55,
-        dashArray: '2,2'
+  /* ── Render polygons ── */
+  geojson.features.forEach(feature => {
+    const { postcode, state, zones } = feature.properties;
+    const popup = buildPopup(postcode, state, zones);
+
+    zones.forEach(zk => {
+      const ui = ZONE_UI[zk];
+      const poly = L.geoJSON(feature, {
+        style: {
+          color: ui.color,
+          weight: 1.2,
+          opacity: 0.9,
+          fillColor: ui.color,
+          fillOpacity: 0.38
+        }
       })
-        .addTo(map)
-        .bindPopup(popupHTML(f.postcode, f.state, f.locality + ' (no boundary data)'));
+        .bindPopup(popup)
+        .on('mouseover', onOver)
+        .on('mouseout', onOut);
+      zoneLayers[zk].addLayer(poly);
     });
-
-    const total = poly.features.length + fallbacks.length;
-    document.getElementById('stat-n').textContent = total;
-    document.getElementById('loading').style.display = 'none';
-  })
-  .catch(err => {
-    const errEl = document.getElementById('err');
-    errEl.style.display = 'block';
-    errEl.textContent = `Failed to load data: ${err.message}. Make sure postcodes.geojson and postcodes-fallback.json are present alongside index.html and you're serving from a local web server (file:// won't fetch).`;
-    document.querySelector('#loading .spinner').style.display = 'none';
-    document.querySelector('#loading p').style.display = 'none';
-    document.querySelector('#loading small').style.display = 'none';
-    console.error(err);
   });
+
+  /* ── Render fallback markers (no polygon data) ── */
+  fallbacks.forEach(f => {
+    const { postcode, state, zones, lat, lng } = f;
+    if (!zones || !zones.length) return;
+    const popup = buildPopup(postcode, state, zones);
+    const primaryZone = zones[0];
+    const ui = ZONE_UI[primaryZone];
+
+    const marker = L.circleMarker([lat, lng], {
+      radius: 5,
+      color: ui.color,
+      weight: 1.5,
+      fillColor: ui.color,
+      fillOpacity: 0.5
+    }).bindPopup(popup);
+
+    zones.forEach(zk => zoneLayers[zk].addLayer(marker));
+  });
+
+  document.getElementById('stat-n').textContent =
+    geojson.features.length + fallbacks.length;
+  document.getElementById('loading').style.display = 'none';
+})
+.catch(err => {
+  const el = document.getElementById('load-err');
+  el.style.display = 'block';
+  el.textContent = `Error: ${err.message}. Open via a local web server (python3 -m http.server 8000), not file://.`;
+  document.querySelector('#loading .spinner').style.display = 'none';
+  console.error(err);
+});
 </script>
 </body>
 </html>
