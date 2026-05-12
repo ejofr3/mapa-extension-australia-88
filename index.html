@@ -8,7 +8,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; }
-    #map { width: 100vw; height: 100vh; }
+    #map { width: 100vw; height: 100vh; background: #cfe2f3; }
 
     #loading {
       position: fixed; inset: 0;
@@ -51,7 +51,12 @@
     #legend h4 { font-size: 12px; color: #0f172a; text-transform: uppercase; letter-spacing: .5px;
                  margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
     .leg { display: flex; align-items: center; margin-bottom: 6px; font-size: 12px; color: #334155; }
-    .dot { width: 13px; height: 13px; border-radius: 50%; margin-right: 9px; flex-shrink: 0; }
+    .swatch { width: 16px; height: 12px; border-radius: 3px; margin-right: 9px; flex-shrink: 0;
+              border: 1.5px solid; }
+    .leg-note { font-size: 10px; color: #64748b; margin-top: 8px; padding-top: 6px;
+                border-top: 1px dashed #e2e8f0; }
+    .leg-dot { width: 11px; height: 11px; border-radius: 50%; margin-right: 9px; flex-shrink: 0;
+               background: #64748b; border: 1.5px solid #475569; }
 
     #stats {
       position: fixed; bottom: 18px; left: 14px;
@@ -61,7 +66,11 @@
       box-shadow: 0 3px 14px rgba(0,0,0,0.22);
     }
     #stats strong { color: #0f172a; font-size: 22px; display: block; }
-    #err { display:none; color:#dc2626; font-size:14px; text-align:center; }
+    #err { display:none; color:#fca5a5; font-size:14px; text-align:center; max-width: 360px; }
+
+    .pc-popup b { font-size: 14px; }
+    .pc-popup .chip { display:inline-block; padding:1px 7px; border-radius:10px;
+                      color:#fff; font-size:11px; font-weight:600; margin-top:3px; }
   </style>
 </head>
 <body>
@@ -70,8 +79,8 @@
 
 <div id="loading">
   <div class="spinner"></div>
-  <p>Loading postcode data…</p>
-  <small>Fetching Australian postcode coordinates</small>
+  <p>Loading postcode boundaries…</p>
+  <small>Rendering ~400 eligible postcode areas</small>
   <div id="err"></div>
 </div>
 
@@ -82,11 +91,18 @@
 
 <div id="legend">
   <h4>State / Territory</h4>
+  <div id="legend-items"></div>
+  <div class="leg-note">
+    <div class="leg" style="margin-bottom: 4px;">
+      <div class="leg-dot"></div><span>= no boundary data (PO-only)</span>
+    </div>
+    Click any area for postcode details
+  </div>
 </div>
 
 <div id="stats">
   <strong id="stat-n">–</strong>
-  postcodes plotted
+  postcodes painted
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -111,142 +127,94 @@ const LABELS = {
   WA:  'Western Australia'
 };
 
-/* ── helpers ──────────────────────────────────────────── */
-function rng(a, b) {
-  const r = [];
-  for (let i = a; i <= b; i++) r.push(i);
-  return r;
-}
-
-/* ── eligible postcode sets ───────────────────────────── */
-const ELIGIBLE = {
-  NSW: new Set([
-    2356, 2386, 2387, 2396, 2405, 2406, 2672, 2675, 2825, 2826, 2829,
-    ...rng(2832, 2836), ...rng(2838, 2840),
-    2873, 2878, 2879, 2898, 2899
-  ]),
-  NT: 'all',
-  QLD: new Set([
-    4025, 4183,
-    ...rng(4417,4420), 4422, 4423, ...rng(4426,4428),
-    4454, 4461, 4462, 4465, 4467, 4468, 4470, 4474, 4475,
-    ...rng(4477,4482), ...rng(4486,4494), 4496, 4497,
-    4680, 4694, 4695, 4697,
-    ...rng(4699,4707), ...rng(4709,4714), 4717,
-    ...rng(4720,4728), ...rng(4730,4733), ...rng(4735,4746),
-    4750, 4751, 4753, 4754, 4756, 4757,
-    ...rng(4798,4812), ...rng(4814,4825), ...rng(4828,4830),
-    4849, 4850, 4852,
-    ...rng(4854,4856), ...rng(4858,4861),
-    4865, ...rng(4868,4888), ...rng(4890,4892), 4895
-  ]),
-  VIC: new Set([
-    3424, 3506, 3509, 3512, ...rng(3889,3892)
-  ]),
-  SA: new Set([
-    ...rng(5220,5223), ...rng(5302,5304),
-    5440, 5576, 5577, 5582, 5583,
-    ...rng(5602,5607), 5611,
-    ...rng(5630,5633), ...rng(5640,5642), ...rng(5650,5655),
-    5660, 5661, 5670, 5671, 5680, 5690,
-    5713, 5715, 5717, 5719, 5720,
-    ...rng(5722,5725), ...rng(5730,5734)
-  ]),
-  TAS: new Set([
-    7139, ...rng(7255,7257), ...rng(7466,7470)
-  ]),
-  WA: new Set([
-    6161,
-    ...rng(6335,6338), 6341, 6343, 6346, 6348,
-    ...rng(6350,6353), ...rng(6355,6359),
-    6361, 6363, 6365, ...rng(6367,6369),
-    6373, 6375, 6385, 6386,
-    ...rng(6418,6429), 6431, 6434, ...rng(6436,6438),
-    6440, 6443, ...rng(6445,6448), 6450, 6452,
-    ...rng(6466,6468), 6470, 6472, 6473,
-    ...rng(6475,6477), 6479, 6480, 6484,
-    ...rng(6487,6490), 6515, ...rng(6517,6519), 6536,
-    6605, 6606, 6608, 6609, ...rng(6612,6614),
-    6616, 6620, 6623, 6625, 6627, 6628,
-    ...rng(6630,6632), 6635, ...rng(6638,6640),
-    6731, 6733, 6798, 6799
-  ])
-};
-
-function isEligible(postcode, state) {
-  const set = ELIGIBLE[state];
-  if (!set) return false;
-  if (set === 'all') return true;
-  return set.has(+postcode);
-}
-
 /* ── map init ─────────────────────────────────────────── */
 const map = L.map('map', { preferCanvas: true }).setView([-25.5, 134], 4);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · postcode boundaries: ABS POA via ferocia/australia-geojsons',
   maxZoom: 18
 }).addTo(map);
 
 /* ── legend ───────────────────────────────────────────── */
-const legendEl = document.getElementById('legend');
+const legendBox = document.getElementById('legend-items');
 Object.entries(COLORS).forEach(([state, color]) => {
-  const div = document.createElement('div');
-  div.className = 'leg';
-  div.innerHTML = `<div class="dot" style="background:${color};border:1.5px solid ${color}cc"></div><span>${LABELS[state]}</span>`;
-  legendEl.appendChild(div);
+  const row = document.createElement('div');
+  row.className = 'leg';
+  row.innerHTML = `<div class="swatch" style="background:${color}66;border-color:${color}"></div>
+                   <span>${LABELS[state]}</span>`;
+  legendBox.appendChild(row);
 });
 
-/* ── load & plot ──────────────────────────────────────── */
-const DATA_URL =
-  'https://raw.githubusercontent.com/matthewproctor/australianpostcodes/master/australian_postcodes.json';
+/* ── style functions ──────────────────────────────────── */
+function polyStyle(feature) {
+  const c = COLORS[feature.properties.state] || '#94a3b8';
+  return {
+    color: c,
+    weight: 1.4,
+    opacity: 0.95,
+    fillColor: c,
+    fillOpacity: 0.42
+  };
+}
+function polyHover(layer) {
+  layer.setStyle({ weight: 2.8, fillOpacity: 0.62 });
+  if (layer.bringToFront) layer.bringToFront();
+}
+function polyReset(layer) {
+  layer.setStyle({ weight: 1.4, fillOpacity: 0.42 });
+}
 
-fetch(DATA_URL)
-  .then(r => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json();
-  })
-  .then(data => {
-    const seen = new Set();
-    let count = 0;
+function popupHTML(pc, state, locality) {
+  const c = COLORS[state] || '#64748b';
+  return `<div class="pc-popup">
+    <b>Postcode ${pc}</b><br>
+    ${locality ? `${locality}<br>` : ''}
+    <span class="chip" style="background:${c}">${state}</span>
+  </div>`;
+}
 
-    data.forEach(item => {
-      const state = (item.state || '').trim().toUpperCase();
-      const pc    = String(item.postcode || '').trim();
-      const lat   = parseFloat(item.lat);
-      const lng   = parseFloat(item.long);
+/* ── load & render ────────────────────────────────────── */
+Promise.all([
+  fetch('postcodes.geojson').then(r => { if (!r.ok) throw new Error('postcodes.geojson HTTP ' + r.status); return r.json(); }),
+  fetch('postcodes-fallback.json').then(r => { if (!r.ok) throw new Error('postcodes-fallback.json HTTP ' + r.status); return r.json(); })
+])
+  .then(([poly, fallbacks]) => {
+    // Polygons
+    const layer = L.geoJSON(poly, {
+      style: polyStyle,
+      onEachFeature: (feature, lyr) => {
+        const { postcode, state } = feature.properties;
+        lyr.bindPopup(popupHTML(postcode, state, ''));
+        lyr.on({
+          mouseover: e => polyHover(e.target),
+          mouseout:  e => polyReset(e.target)
+        });
+      }
+    }).addTo(map);
 
-      if (!isEligible(pc, state)) return;
-      if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
-      if (seen.has(pc)) return;
-      seen.add(pc);
-
-      const color = COLORS[state] || '#94a3b8';
-
-      L.circleMarker([lat, lng], {
-        radius: 7,
-        color: color,
-        weight: 1.5,
-        fillColor: color,
-        fillOpacity: 0.55
+    // Fallback centroid markers for PO-only postcodes
+    fallbacks.forEach(f => {
+      const c = COLORS[f.state] || '#64748b';
+      L.circleMarker([f.lat, f.lng], {
+        radius: 6,
+        color: c,
+        weight: 2,
+        fillColor: c,
+        fillOpacity: 0.55,
+        dashArray: '2,2'
       })
         .addTo(map)
-        .bindPopup(
-          `<b style="font-size:14px">${pc}</b><br>` +
-          `${item.locality || ''}<br>` +
-          `<span style="color:${color};font-weight:600">${state}</span>`
-        );
-
-      count++;
+        .bindPopup(popupHTML(f.postcode, f.state, f.locality + ' (no boundary data)'));
     });
 
+    const total = poly.features.length + fallbacks.length;
+    document.getElementById('stat-n').textContent = total;
     document.getElementById('loading').style.display = 'none';
-    document.getElementById('stat-n').textContent = count;
   })
   .catch(err => {
     const errEl = document.getElementById('err');
     errEl.style.display = 'block';
-    errEl.textContent = `Failed to load data: ${err.message}. Check internet connection and reload.`;
+    errEl.textContent = `Failed to load data: ${err.message}. Make sure postcodes.geojson and postcodes-fallback.json are present alongside index.html and you're serving from a local web server (file:// won't fetch).`;
     document.querySelector('#loading .spinner').style.display = 'none';
     document.querySelector('#loading p').style.display = 'none';
     document.querySelector('#loading small').style.display = 'none';
