@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="Where Working Holiday Maker specified work counts toward a second or third Australian visa — by postcode, by industry, across the year."
+    />
+    <title>Australia — WHV Specified Work Map</title>
+    <script type="module" crossorigin src="/map/assets/index-D8Z_Y5WF.js"></script>
+    <link rel="stylesheet" crossorigin href="/map/assets/index-BtbZhTs6.css">
+  </head>
+  <body>
+    <div id="map" aria-label="Map of Australia"></div>
+
+    <!-- Controls live OUTSIDE the map canvas: on a phone one finger drags the
+         map, so a slider overlaid on the canvas would be unusable. -->
+    <div id="shell">
+      <header id="titlebar">
+        <h1>Specified work — Australia</h1>
+        <button id="panel-toggle" type="button" aria-expanded="false" aria-controls="panel">
+          <span class="sr-only">Toggle filters</span>
+          <span aria-hidden="true" class="chev"></span>
+        </button>
+      </header>
+
+      <section id="panel" aria-label="Filters">
+        <fieldset class="group">
+          <legend>Visa</legend>
+          <div class="segmented" role="radiogroup" aria-label="Visa subclass">
+            <button type="button" role="radio" data-visa="462" aria-checked="true">
+              462 <span class="sub">Work &amp; Holiday</span>
+            </button>
+            <button type="button" role="radio" data-visa="417" aria-checked="false">
+              417 <span class="sub">Working Holiday</span>
+            </button>
+          </div>
+        </fieldset>
+
+        <p class="pending">
+          Industry filter, eligibility zones and the context layers arrive in the
+          next phase. This is the map shell and the self-hosted basemap.
+        </p>
+      </section>
+
+      <footer id="timebar">
+        <div class="month-readout">
+          <output id="month-label" for="month">January</output>
+          <span id="season-label" class="season">Summer</span>
+        </div>
+        <input
+          id="month"
+          type="range"
+          min="1"
+          max="12"
+          step="1"
+          value="1"
+          aria-label="Month of year"
+        />
+      </footer>
+    </div>
+
+  </body>
+</html>

@@ -63,6 +63,28 @@ range responses with correct `Content-Range` — all surviving the Cloudflare pr
 with `cf-cache-status: HIT`. PMTiles range requests will work, and Cloudflare
 provides free CDN caching in front of them.
 
+## What lives on the VPS
+
+| Path | Served at | Contents |
+|---|---|---|
+| `/srv/sites/data.eliasjofre.com/public/` | `https://eliasjofre.com/data/` | the data host |
+| `└─ whv462/source/` | `…/data/whv462/source/` | authoritative source PDFs (provenance anchor, sha256 recorded) |
+| `└─ whv462/derived/` | `…/data/whv462/derived/` | generated eligibility JSON — still empty |
+| `└─ basemap/` | `…/data/basemap/` | `australia.pmtiles` (1.1 GB) + self-hosted `fonts/` and `sprites/` |
+| `/srv/sites/map-preview/` | `https://eliasjofre.com/map/` | built app, so it can be opened on a phone on any network |
+| `/srv/caddy/Caddyfile` | — | site config; timestamped `.bak-*` before every edit |
+
+Disk after all of the above: 7.2 GB used of 74 GB.
+
+**`/map/` is a preview, not the canonical home** — GitHub Pages stays canonical.
+Redeploy it with `npx vite build --base=/map/ --outDir=.preview-dist --emptyOutDir`
+then `rsync -az --delete .preview-dist/ ovh:/srv/sites/map-preview/`. To remove it,
+delete that directory and its two Caddy blocks.
+
+Note the Caddyfile has a `handle /map` block that 302s to `/map/`. Without it the
+bare path misses `/map/*`, falls through to the catch-all and answers "Nothing to
+see here" — which is exactly what happened the first time.
+
 ## Stack
 
 - **MapLibre GL JS v6** — globe projection, 3D terrain, `fill-extrusion`. Open
