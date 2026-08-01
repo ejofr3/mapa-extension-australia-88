@@ -65,9 +65,10 @@ provides free CDN caching in front of them.
 
 ## Stack
 
-- **MapLibre GL JS v5** — globe projection, 3D terrain, `fill-extrusion`. Open
+- **MapLibre GL JS v6** — globe projection, 3D terrain, `fill-extrusion`. Open
   source, no API key. (Leaflet can't do 3D or handle the data volume; that's why
-  the old page loaded a 6 MB GeoJSON on every visit.)
+  the old page loaded a 6 MB GeoJSON on every visit.) Note v6 removed the default
+  export; import named symbols (`Map as MapLibreMap`, `addProtocol`, …).
 - **deck.gl** — GPU layers for density: extruded columns, hexbins, and arcs for
   the north–south tourism flow. Composes with MapLibre.
 - **PMTiles** — single-file tile archives served over HTTP range requests.
@@ -100,7 +101,18 @@ provides free CDN caching in front of them.
 | Agriculture | ABS Agricultural Census / Value of Agricultural Commodities Produced; ABARES CLUM land use | SA2/SA4 | annual | ⬜ |
 | Harvest seasonality | National Harvest Labour Information Service / Harvest Trail guide | harvest region | **monthly** | ⬜ |
 | Tourism | Tourism Research Australia NVS + IVS | Tourism Region | quarterly | ⬜ |
-| Basemap | OpenStreetMap via Protomaps build | — | — | ⬜ |
+| Basemap | OpenStreetMap via Protomaps daily build 20260801 (ODbL) | — | — | ✅ deployed |
+
+**Basemap, as built (2026-08-01):** `build.protomaps.com/20260801.pmtiles` (127.7 GB
+planet) extracted over HTTP range requests to bbox `96.0,-45.0,169.5,-8.5`,
+maxzoom 14 → **1.1 GB**, at `/data/basemap/australia.pmtiles`. Fonts and sprites
+from `protomaps/basemaps-assets` are self-hosted alongside it, so the page loads
+nothing from a third-party host. Bounds are deliberately far wider than mainland
+Australia: **6798 Christmas Island, 6799 Cocos (Keeling), 2898 Lord Howe and 2899
+Norfolk Island are all eligible postcodes** that a mainland box silently drops. All
+four verified to return real tiles. Cloudflare reports `DYNAMIC` on the 1.1 GB
+archive (over the free plan's cacheable object size) — harmless, since ranged reads
+are small and the origin serves them fine.
 
 **Known ceiling on accuracy:** Australia Post does not publish postcode boundaries.
 ABS POA is an approximation built from mesh blocks, and PO-box-only postcodes have
@@ -210,6 +222,13 @@ they're the mistakes any extraction of this data can make, so each becomes a tes
       `github-mapa88` in `~/.ssh/config` with `IdentitiesOnly yes`, and `origin` set to
       `git@github-mapa88:ejofr3/mapa-extension-australia-88.git`. Nothing else to do
       once the key is pasted in.
+- [ ] **BLOCKER — GitHub Pages source.** Vite builds to `docs/`. Pages is currently
+      serving the repo root, so once `rebuild` merges to `main` it must be switched:
+      Settings → Pages → Source: *Deploy from a branch* → `main` / **`/docs`**.
+      Until then the live URL keeps serving the old page, which is deliberate — it
+      stays up throughout the rebuild.
 - [ ] Source and verify the subclass 417 postcode lists
 - [ ] Confirm the Harvest Trail guide's current location and licence terms
-- [ ] Decide basemap zoom ceiling — full street detail vs. VPS disk (65 GB free)
+- [x] ~~Decide basemap zoom ceiling~~ — z14, 1.1 GB. z12 was 264 MB and z13 563 MB;
+      z14 is the first level with a usable street network, which the address-lookup
+      requirement demands. MapLibre overzooms past 14 for closer views.
