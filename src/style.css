@@ -1,0 +1,297 @@
+/* ---------------------------------------------------------------------------
+   Layout contract
+   ---------------------------------------------------------------------------
+   The map fills the viewport. Every control sits in #shell, which overlays the
+   map but never covers it entirely — on a phone one finger drags the map, so a
+   control overlaid on the canvas fights the gesture.
+
+     narrow  (< 900px)  #shell is a bottom sheet, collapsed to the title bar
+                        plus the month slider; tapping the header expands it.
+     wide    (>= 900px) #shell is a fixed side panel on the left.
+
+   Safe-area insets are honoured so the slider clears the iPhone home indicator.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #ffffff;
+  --fg: #12161c;
+  --muted: #5b6572;
+  --line: #d9dee5;
+  --panel: rgba(255, 255, 255, 0.92);
+  --accent: #1c6fd0;
+  --accent-fg: #ffffff;
+  --radius: 14px;
+  --shadow: 0 2px 20px rgb(0 0 0 / 14%);
+  --sheet-max: 60vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116;
+    --fg: #e7ecf3;
+    --muted: #98a3b2;
+    --line: #29313c;
+    --panel: rgba(18, 22, 28, 0.92);
+    --accent: #5aa2f0;
+    --accent-fg: #08111c;
+    --shadow: 0 2px 20px rgb(0 0 0 / 55%);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Stop iOS double-tap-to-zoom fighting the map's own gesture handling. */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+#map {
+  position: fixed;
+  inset: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- shell ---------------------------------------------------------------- */
+
+#shell {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+}
+
+#titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+#titlebar h1 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+#panel-toggle {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chev {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-135deg);
+  transition: transform 160ms ease;
+}
+
+#panel-toggle[aria-expanded="true"] .chev {
+  transform: rotate(45deg);
+}
+
+#panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px;
+}
+
+.group {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.group legend {
+  padding: 0 0 8px;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.segmented button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  /* iOS minimum comfortable touch target. */
+  min-height: 44px;
+}
+
+.segmented button .sub {
+  font-size: 11px;
+  font-weight: 450;
+  color: var(--muted);
+}
+
+.segmented button[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
+.segmented button[aria-checked="true"] .sub {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.pending {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* --- month slider --------------------------------------------------------- */
+
+#timebar {
+  flex: none;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+}
+
+.month-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+#month-label {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.season {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+#month {
+  width: 100%;
+  margin: 0;
+  /* Tall enough to grab with a thumb without hitting the map behind it. */
+  height: 34px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* --- narrow: bottom sheet -------------------------------------------------- */
+
+@media (max-width: 899px) {
+  #shell {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: var(--sheet-max);
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  /* Collapsed by default so the map gets the screen; the slider stays reachable. */
+  #panel {
+    display: none;
+  }
+
+  #shell.is-open #panel {
+    display: block;
+  }
+}
+
+/* --- wide: side panel ------------------------------------------------------ */
+
+@media (min-width: 900px) {
+  #shell {
+    top: 14px;
+    left: 14px;
+    bottom: 14px;
+    width: 340px;
+    border-radius: var(--radius);
+  }
+
+  /* The collapse control is only meaningful on the bottom sheet. */
+  #panel-toggle {
+    display: none;
+  }
+
+  #panel {
+    display: block;
+  }
+}
+
+/* --- maplibre chrome ------------------------------------------------------- */
+
+.maplibregl-ctrl-attrib {
+  font-size: 11px;
+}
+
+/* Keep MapLibre's own controls clear of the shell. */
+@media (min-width: 900px) {
+  .maplibregl-ctrl-top-left {
+    margin-left: 356px;
+  }
+}
+
+@media (max-width: 899px) {
+  .maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-bottom-left {
+    margin-bottom: 132px;
+  }
+}

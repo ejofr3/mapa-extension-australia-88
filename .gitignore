@@ -1,0 +1,20 @@
+node_modules/
+.DS_Store
+*.log
+
+# Vite
+.vite/
+dist/
+
+# Python pipeline
+pipeline/.venv/
+pipeline/__pycache__/
+*.pyc
+
+# Large intermediates from the ETL — regenerate with the pipeline, never commit.
+# The published copies live on the data host, not in git.
+pipeline/cache/
+*.pmtiles
+*.osm.pbf
+*.shp
+*.gpkg
