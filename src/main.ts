@@ -76,7 +76,11 @@ function wirePanelToggle(): void {
 }
 
 function main(): void {
-  createMap(el<HTMLDivElement>("map"));
+  const map = createMap(el<HTMLDivElement>("map"));
+  // Debug handle. The map is public data on a public page, so there is nothing
+  // to protect here, and being able to poke at the instance from the console is
+  // worth a great deal when a layer silently fails to paint.
+  (globalThis as unknown as Record<string, unknown>)["__map"] = map;
   wireMonthSlider();
   wireVisaToggle();
   wirePanelToggle();

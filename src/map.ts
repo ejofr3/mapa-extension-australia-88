@@ -1,6 +1,7 @@
 import {
   Map as MapLibreMap,
   addProtocol,
+  setWorkerUrl,
   GeolocateControl,
   NavigationControl,
   ScaleControl,
@@ -10,6 +11,18 @@ import { Protocol } from "pmtiles";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 
 import { AU_BOUNDS, BASEMAP, INITIAL_VIEW } from "./config.ts";
+
+/**
+ * Point MapLibre at the worker vendored into public/maplibre/ by
+ * scripts/vendor-maplibre-worker.mjs. Without this MapLibre derives the URL from
+ * `import.meta.url` and lands on a file the bundler never emitted, which hangs
+ * the worker silently — no error, no tile requests, just a grey globe.
+ *
+ * BASE_URL keeps this correct under the GitHub Pages subpath as well as at /.
+ */
+function configureWorker(): void {
+  setWorkerUrl(`${import.meta.env.BASE_URL}maplibre/maplibre-gl-worker.mjs`);
+}
 
 /**
  * Registers the `pmtiles://` protocol with MapLibre. Must run before any map is
@@ -44,6 +57,7 @@ function buildStyle(dark: boolean): StyleSpecification {
 }
 
 export function createMap(container: HTMLElement): MapLibreMap {
+  configureWorker();
   registerPmtilesProtocol();
 
   const map = new MapLibreMap({
@@ -70,6 +84,13 @@ export function createMap(container: HTMLElement): MapLibreMap {
   // the seasonal north/south story reads better without Mercator's distortion.
   map.on("style.load", () => {
     map.setProjection({ type: "globe" });
+  });
+
+  // MapLibre routes failures to this event, not the console. Without it a broken
+  // style, a 404 sprite or a dead tile source fails completely silently — which
+  // is exactly how the worker bug above went unnoticed.
+  map.on("error", (event) => {
+    console.error("[map]", event.error?.message ?? event.error ?? event);
   });
 
   map.addControl(new NavigationControl({ visualizePitch: true }), "top-right");

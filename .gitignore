@@ -18,3 +18,6 @@ pipeline/cache/
 *.osm.pbf
 *.shp
 *.gpkg
+
+# Vendored at build time by scripts/vendor-maplibre-worker.mjs
+public/maplibre/

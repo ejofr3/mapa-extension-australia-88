@@ -163,6 +163,32 @@ No blogs, no backpacker forums, no working-hostel lists, and no model general
 knowledge presented as fact. Where a seasonal claim has no official source, the map
 says so rather than guessing.
 
+## Gotchas already paid for
+
+**MapLibre v6's web worker is not bundleable.** It resolves its own worker with
+`new URL(\`./${name}\`, import.meta.url)` — dynamic, so no bundler can see it.
+Vite rewrites the *reference* into `assets/` but never emits the file; the browser
+then gets the SPA fallback HTML where it expects a JS module and the worker hangs
+**silently** — no console error, no `map.on('error')` event, zero tile requests,
+just a grey circle. The worker also imports `./maplibre-gl-shared.mjs` as a
+sibling, so `?url` imports don't work either (they hash each file separately and
+break the relative specifier).
+
+Fix in place: `scripts/vendor-maplibre-worker.mjs` copies both files into
+`public/maplibre/` on `predev`/`prebuild`, and `setWorkerUrl()` points at them
+using `import.meta.env.BASE_URL` so it stays correct under the Pages subpath.
+Do not "clean this up" — it will silently break the map.
+
+**Diagnosing this class of bug:** MapLibre reports failures through
+`map.on('error')`, never the console. That handler is now wired in `map.ts`;
+keep it.
+
+**First paint is slow (several seconds).** Cold PMTiles reads from Perth via
+Cloudflare need the header, then the root directory, then leaf directories,
+before a single tile arrives. Nothing is broken — but it looks broken, and two
+separate debugging passes were wasted screenshotting too early. Phase 5 should
+add a loading state.
+
 ## Traps to test for
 
 Failure modes found when auditing the discarded version. They aren't inherited — but

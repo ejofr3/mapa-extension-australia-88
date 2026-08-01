@@ -5,6 +5,8 @@
     "module": "ESNext",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    /* Provides import.meta.env (BASE_URL etc). */
+    "types": ["vite/client"],
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

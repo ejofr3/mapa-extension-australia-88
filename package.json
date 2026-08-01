@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Where Working Holiday Maker specified work counts toward a second or third Australian visa — by postcode, by industry, across the year.",
   "scripts": {
+    "vendor:worker": "node scripts/vendor-maplibre-worker.mjs",
+    "predev": "npm run vendor:worker",
     "dev": "vite",
+    "prebuild": "npm run vendor:worker",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
