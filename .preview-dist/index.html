@@ -9,8 +9,8 @@
       content="Where Working Holiday Maker specified work counts toward a second or third Australian visa — by postcode, by industry, across the year."
     />
     <title>Australia — WHV Specified Work Map</title>
-    <script type="module" crossorigin src="/map/assets/index-D8Z_Y5WF.js"></script>
-    <link rel="stylesheet" crossorigin href="/map/assets/index-BtbZhTs6.css">
+    <script type="module" crossorigin src="/map/assets/index-C4JqOOXN.js"></script>
+    <link rel="stylesheet" crossorigin href="/map/assets/index-VvDfZgbB.css">
   </head>
   <body>
     <div id="map" aria-label="Map of Australia"></div>
@@ -39,10 +39,31 @@
           </div>
         </fieldset>
 
-        <p class="pending">
-          Industry filter, eligibility zones and the context layers arrive in the
-          next phase. This is the map shell and the self-hosted basemap.
-        </p>
+        <fieldset class="group">
+          <legend>Kind of work</legend>
+          <select id="industry" aria-label="Kind of work"></select>
+          <p id="industry-note" class="note"></p>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>Check a postcode</legend>
+          <div class="search-row">
+            <input
+              id="postcode-input"
+              type="text"
+              inputmode="numeric"
+              maxlength="4"
+              placeholder="e.g. 6770"
+              aria-label="Postcode"
+            />
+            <button id="postcode-go" type="button">Check</button>
+          </div>
+          <p class="hint">Or tap anywhere on the map.</p>
+        </fieldset>
+
+        <div id="result" class="result" aria-live="polite" hidden></div>
+
+        <p id="coverage" class="note"></p>
       </section>
 
       <footer id="timebar">

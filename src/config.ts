@@ -23,6 +23,14 @@ export const BASEMAP = {
     '<a href="https://protomaps.com">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
 } as const;
 
+export const POSTCODES = {
+  /** ABS POA 2021 boundaries, 2,641 postal areas, z0–12 (~19 MB). */
+  pmtiles: `${DATA_HOST}/basemap/postcodes.pmtiles`,
+  /** Required by the ABS CC BY 4.0 licence. */
+  attribution:
+    'Postcode boundaries © <a href="https://www.abs.gov.au">ABS</a> (CC BY 4.0)',
+} as const;
+
 /**
  * Extract bounds of the basemap. Deliberately wider than mainland Australia:
  * four eligible postcodes sit on external territories that a naive

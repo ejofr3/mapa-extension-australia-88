@@ -295,3 +295,143 @@ body {
     margin-bottom: 132px;
   }
 }
+
+/* --- eligibility controls -------------------------------------------------- */
+
+/* Matches the fill colour in layers.ts. One series, so no legend box is needed
+   (the coverage line names it); the swatch just ties text to what's on screen. */
+:root {
+  --eligible: #eb6834;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --eligible: #d95926; }
+}
+
+#industry {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+}
+
+#industry:disabled {
+  opacity: 0.5;
+}
+
+.search-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+}
+
+#postcode-input {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* Tabular figures so 6770 and 1111 are the same width while typing. */
+  font-variant-numeric: tabular-nums;
+}
+
+#postcode-go {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.note,
+.hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+#coverage::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: var(--eligible);
+  vertical-align: baseline;
+}
+
+#coverage:empty::before {
+  display: none;
+}
+
+/* --- result readout -------------------------------------------------------- */
+
+.result {
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.result h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.result h3 {
+  margin: 12px 0 4px;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.result ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.result li {
+  margin: 2px 0;
+}
+
+/* Verdicts carry a word, never colour alone — "Counts" / "Does not count" is
+   the signal; the tint is reinforcement. */
+.verdict {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.verdict.yes {
+  background: color-mix(in srgb, var(--eligible) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--eligible) 45%, transparent);
+}
+
+.verdict.no,
+.verdict.unknown {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  border: 1px solid var(--line);
+}
+
+.muted {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}

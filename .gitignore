@@ -21,3 +21,4 @@ pipeline/cache/
 
 # Vendored at build time by scripts/vendor-maplibre-worker.mjs
 public/maplibre/
+public/data/

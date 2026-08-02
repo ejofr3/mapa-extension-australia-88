@@ -36,7 +36,7 @@ function registerPmtilesProtocol(): void {
   protocolRegistered = true;
 }
 
-function prefersDark(): boolean {
+export function prefersDark(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 

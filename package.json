@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Where Working Holiday Maker specified work counts toward a second or third Australian visa — by postcode, by industry, across the year.",
+  "description": "Where Working Holiday Maker specified work counts toward a second or third Australian visa \u2014 by postcode, by industry, across the year.",
   "scripts": {
     "vendor:worker": "node scripts/vendor-maplibre-worker.mjs",
-    "predev": "npm run vendor:worker",
+    "predev": "npm run vendor:worker && npm run stage:data",
     "dev": "vite",
-    "prebuild": "npm run vendor:worker",
+    "prebuild": "npm run vendor:worker && npm run stage:data",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stage:data": "node scripts/stage-data.mjs"
   },
   "dependencies": {
     "@protomaps/basemaps": "^5.7.2",
