@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser", "chromium",
+        "--headless",
+        "--viewport-size", "1400,900",
+        "--user-data-dir", "/home/debian/.cache/playwright-mcp-profile"
+      ]
+    }
+  }
+}

@@ -43,6 +43,11 @@ export function prefersDark(): boolean {
 function buildStyle(dark: boolean): StyleSpecification {
   return {
     version: 8,
+    // Declared in the style rather than via setProjection() after style.load:
+    // mutating the projection resets the style's tile managers, which silently
+    // destroyed any source added in the same tick. Symptom was "There is no tile
+    // manager with ID 'postcodes'" and an eligibility layer that never painted.
+    projection: { type: "globe" },
     glyphs: BASEMAP.glyphs,
     sprite: dark ? BASEMAP.spriteDark : BASEMAP.spriteLight,
     sources: {
@@ -78,12 +83,6 @@ export function createMap(container: HTMLElement): MapLibreMap {
     // where mid-range hardware starts dropping frames.
     maxPitch: 75,
     hash: false,
-  });
-
-  // Globe rather than Mercator: Australia spans ~40 degrees of longitude and
-  // the seasonal north/south story reads better without Mercator's distortion.
-  map.on("style.load", () => {
-    map.setProjection({ type: "globe" });
   });
 
   // MapLibre routes failures to this event, not the console. Without it a broken

@@ -268,6 +268,20 @@ async function main(): Promise<void> {
   wirePostcodeSearch();
   wirePanelToggle();
 
+  // Register BEFORE any await. `style.load` is a one-shot event: if the style
+  // finishes loading while we are awaiting something else, a handler attached
+  // afterwards never fires at all — which is exactly how the eligibility layers
+  // silently failed to appear while every other part of the app worked.
+  // It also fires again after a theme change, which discards every custom layer,
+  // so this must re-add them rather than run once at startup.
+  const installLayers = () => {
+    addEligibilityLayers(map, prefersDark());
+    renderEligibility();
+  };
+  map.on("style.load", installLayers);
+  // ...and cover the case where it already fired before we got here.
+  if (map.isStyleLoaded()) installLayers();
+
   try {
     const res = await fetch(`${BASE}data/postcode_points.json`);
     if (res.ok) {
@@ -276,13 +290,6 @@ async function main(): Promise<void> {
   } catch {
     /* search still works; it just will not recentre the map */
   }
-
-  // style.load fires again after a theme change, which discards every custom
-  // layer, so these must be re-added here rather than once at startup.
-  map.on("style.load", () => {
-    addEligibilityLayers(map, prefersDark());
-    renderEligibility();
-  });
 
   map.on("click", (e) => selectPostcode(postcodeAt(map, e.point)));
   map.on("mouseenter", FILL_LAYER, () => {
