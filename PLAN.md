@@ -187,6 +187,21 @@ says so rather than guessing.
 
 ## Gotchas already paid for
 
+**Never edit `/srv/caddy/Caddyfile` with `sed -i`.** Docker bind-mounts that file
+by *inode*. `sed -i` writes a temp file and renames it, producing a new inode, so
+the running container keeps reading the old content — `caddy validate` and
+`caddy reload` both report success while nothing actually changes. Diagnose with
+`docker compose exec caddy grep ... /etc/caddy/Caddyfile` and compare against the
+host copy. Edit in place instead (`scp`, or `cat new > Caddyfile`), or apply live
+with `docker cp` + `caddy reload --config /tmp/... --adapter caddyfile`. The stale
+mount self-heals on the next container restart.
+
+**Directory browsing was on and is now off.** `file_server browse` under
+`/data/*` let anyone enumerate the whole tree. Nothing sensitive was in it, but a
+listing turns every future careless drop into a discoverable file. Plain
+`file_server` serves known URLs and 404s directory requests, which is all the app
+needs.
+
 **MapLibre v6's web worker is not bundleable.** It resolves its own worker with
 `new URL(\`./${name}\`, import.meta.url)` — dynamic, so no bundler can see it.
 Vite rewrites the *reference* into `assets/` but never emits the file; the browser
